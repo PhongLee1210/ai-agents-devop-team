@@ -5,10 +5,11 @@ from models.groq_models import CodeReviewRequest, CodeReviewFeedback
 from github import Github
 import os
 
+
 class CodeReviewConfig(BaseModel):
     """
     Configuration settings for the Code Review agent.
-    
+
     Attributes:
         model (str): The LLM model to use for code review (default: llama3-8b-8192)
         groq_api_endpoint (str): GROQ API endpoint URL
@@ -17,6 +18,7 @@ class CodeReviewConfig(BaseModel):
         repo_name (str): GitHub repository name in format "username/repo"
         pull_request_number (int): PR number to review
     """
+
     model: str = "llama3-8b-8192"  # Default model for code review
     groq_api_endpoint: str
     groq_api_key: str
@@ -24,10 +26,11 @@ class CodeReviewConfig(BaseModel):
     repo_name: str
     pull_request_number: int
 
+
 class CodeReviewAgent(Agent):
     """
     An AI agent that performs automated code reviews on GitHub pull requests.
-    
+
     This agent analyzes Python files in pull requests, provides feedback on code quality,
     and posts detailed review comments directly to GitHub.
     """
@@ -35,22 +38,32 @@ class CodeReviewAgent(Agent):
     def __init__(self, config: CodeReviewConfig):
         """
         Initialize the Code Review agent with necessary clients and configuration.
-        
+
         Args:
             config (CodeReviewConfig): Configuration object containing API keys and settings
         """
-        super().__init__()  # Don't pass config to parent
-        self.config = config
+        # Initialize with a try/except to handle potential initialization issues with the parent class
+        try:
+            super().__init__(config)
+        except Exception as e:
+            print(f"Warning: Agent initialization failed with {type(e).__name__}: {e}")
+            print("Continuing with basic initialization...")
+            # Minimal initialization if parent initialization fails
+            self.config = config
+        else:
+            # If parent initialization succeeded but didn't set self.config
+            if not hasattr(self, "config"):
+                self.config = config
+
         self.groq_client = GROQClient(
-            api_endpoint=config.groq_api_endpoint,
-            api_key=config.groq_api_key
+            api_endpoint=config.groq_api_endpoint, api_key=config.groq_api_key
         )
         self.github_client = Github(self.config.github_token)
 
     def fetch_pull_request_files(self):
         """
         Retrieve the files modified in the specified pull request.
-        
+
         Returns:
             PaginatedList: List of files modified in the pull request
         """
@@ -59,15 +72,36 @@ class CodeReviewAgent(Agent):
         files = pull_request.get_files()
         return files
 
+    def fetch_file_content(self, file):
+        """
+        Fetch the actual content of a file from GitHub.
+
+        Args:
+            file: GitHub file object from the pull request
+
+        Returns:
+            str: Content of the file or None if it can't be fetched
+        """
+        try:
+            repo = self.github_client.get_repo(self.config.repo_name)
+            content = repo.get_contents(
+                file.filename, ref=f"pr/{self.config.pull_request_number}"
+            )
+            if content:
+                return content.decoded_content.decode("utf-8")
+        except Exception as e:
+            print(f"Error fetching file content: {e}")
+        return None
+
     def perform_code_review(self):
         """
         Analyze modified Python files in the pull request and generate review feedback.
-        
+
         The method:
         1. Fetches modified files from the pull request
         2. Analyzes Python files using the GROQ API
         3. Generates detailed feedback for each file
-        
+
         Returns:
             list: List of dictionaries containing feedback for each reviewed file
                  Including issues found, suggestions, and overall quality scores
@@ -76,38 +110,40 @@ class CodeReviewAgent(Agent):
         feedback = []
 
         for file in files:
-            if file.filename.endswith('.py'):  # Focus on Python files
-                file_content = file.patch  # Get the diff
+            if file.filename.endswith(".py"):  # Focus on Python files
+                file_content = self.fetch_file_content(file)
                 # Create review request for the file
                 code_review_request = CodeReviewRequest(
                     file_name=file.filename,
-                    file_content=file.raw_url,  # You might need to fetch the actual content
-                    diff=file.patch
+                    file_content=file.raw_url,  # URL to the raw content
+                    diff=file.patch,
+                    code=file_content
+                    if file_content
+                    else file.patch,  # Use actual content if available, otherwise use patch
                 )
                 try:
                     # Send the review request to GROQ API
                     review_feedback = self.groq_client.send_code_review_request(
                         model_id=self.config.model,
-                        code_review_request=code_review_request
+                        code_review_request=code_review_request,
                     )
-                    feedback.append({
-                        "file": file.filename,
-                        "issues": review_feedback.issues,
-                        "suggestions": review_feedback.suggestions,
-                        "overall_quality": review_feedback.overall_quality
-                    })
+                    feedback.append(
+                        {
+                            "file": file.filename,
+                            "issues": review_feedback.issues,
+                            "suggestions": review_feedback.suggestions,
+                            "overall_quality": review_feedback.overall_quality,
+                        }
+                    )
                 except Exception as e:
-                    feedback.append({
-                        "file": file.filename,
-                        "error": str(e)
-                    })
+                    feedback.append({"file": file.filename, "error": str(e)})
 
         return feedback
 
     def post_feedback_to_github(self, feedback):
         """
         Post the code review feedback as comments on the GitHub pull request.
-        
+
         Args:
             feedback (list): List of feedback dictionaries for each reviewed file
                            containing issues, suggestions, and quality scores
@@ -121,9 +157,13 @@ class CodeReviewAgent(Agent):
                 comment = f"⚠️ **Code Review Error**: {file_feedback['error']}"
             else:
                 # Format successful review feedback
-                issues = "\n".join([f"- {issue['description']}" for issue in file_feedback['issues']])
-                suggestions = "\n".join([f"- {suggestion}" for suggestion in file_feedback['suggestions']])
-                overall = file_feedback['overall_quality']
+                issues = "\n".join(
+                    [f"- {issue['description']}" for issue in file_feedback["issues"]]
+                )
+                suggestions = "\n".join(
+                    [f"- {suggestion}" for suggestion in file_feedback["suggestions"]]
+                )
+                overall = file_feedback["overall_quality"]
 
                 comment = (
                     f"### 📝 Code Review for `{file_feedback['file']}`\n\n"
@@ -137,12 +177,12 @@ class CodeReviewAgent(Agent):
     def run(self):
         """
         Execute the main workflow of the code review agent.
-        
+
         This method:
         1. Performs code review on the pull request files
         2. Posts the feedback to GitHub
         3. Returns the complete feedback data
-        
+
         Returns:
             list: Complete feedback data for all reviewed files
         """
