@@ -106,12 +106,21 @@ class ChatAgent(Agent):
             user_message=user_message,
             context=context_str,
         )
+
+        # Log diagnostic information
+        print(f"ChatAgent - Using API endpoint: {self.groq_client.api_endpoint}")
+        print(f"ChatAgent - Using model ID: {self.config.chat_model_id}")
+
         try:
             response = self.groq_client.send_chat_create_request(chat_request)
             return response
         except Exception as e:
-            print(f"Error during chat interaction: {e}")
-            raise
+            print(f"Error during chat interaction: {type(e).__name__}: {e}")
+            # Create a minimal response object to avoid further errors
+            return ChatCreateResponse(
+                response="Error: Failed to communicate with GROQ API",
+                metadata={"error": str(e)},
+            )
 
     def post_feedback_to_github(self, bot_response: str):
         """

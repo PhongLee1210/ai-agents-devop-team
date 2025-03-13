@@ -84,9 +84,10 @@ class CodeReviewAgent(Agent):
         """
         try:
             repo = self.github_client.get_repo(self.config.repo_name)
-            content = repo.get_contents(
-                file.filename, ref=f"pr/{self.config.pull_request_number}"
-            )
+            # Get the PR to access its head commit
+            pull_request = repo.get_pull(self.config.pull_request_number)
+            # Use the head commit SHA instead of 'pr/n' format
+            content = repo.get_contents(file.filename, ref=pull_request.head.sha)
             if content:
                 return content.decoded_content.decode("utf-8")
         except Exception as e:
@@ -106,38 +107,67 @@ class CodeReviewAgent(Agent):
             list: List of dictionaries containing feedback for each reviewed file
                  Including issues found, suggestions, and overall quality scores
         """
-        files = self.fetch_pull_request_files()
-        feedback = []
+        # Log diagnostic information
+        print(f"CodeReviewAgent - Using API endpoint: {self.groq_client.api_endpoint}")
+        print(f"CodeReviewAgent - Using model ID: {self.config.model}")
 
-        for file in files:
-            if file.filename.endswith(".py"):  # Focus on Python files
-                file_content = self.fetch_file_content(file)
-                # Create review request for the file
-                code_review_request = CodeReviewRequest(
-                    code=file_content
-                    if file_content
-                    else file.patch,  # This is the required field
-                    file_name=file.filename,  # Optional field
-                    language="python",  # Optional field, specifying the language
-                )
-                try:
-                    # Send the review request to GROQ API
-                    review_feedback = self.groq_client.send_code_review_request(
-                        model_id=self.config.model,
-                        code_review_request=code_review_request,
-                    )
-                    feedback.append(
-                        {
-                            "file": file.filename,
-                            "issues": review_feedback.issues,
-                            "suggestions": review_feedback.suggestions,
-                            "overall_quality": review_feedback.overall_quality,
-                        }
-                    )
-                except Exception as e:
-                    feedback.append({"file": file.filename, "error": str(e)})
+        try:
+            files = self.fetch_pull_request_files()
+            print(f"Found {len(files)} files in the pull request")
 
-        return feedback
+            feedback = []
+
+            for file in files:
+                print(f"Examining file: {file.filename}")
+                if file.filename.endswith(".py"):  # Focus on Python files
+                    print(f"Processing Python file: {file.filename}")
+                    file_content = self.fetch_file_content(file)
+
+                    if not file_content:
+                        print(
+                            f"Warning: Could not fetch content for {file.filename}, using patch as fallback"
+                        )
+
+                    # Create review request for the file
+                    code_review_request = CodeReviewRequest(
+                        code=file_content
+                        if file_content
+                        else file.patch,  # This is the required field
+                        file_name=file.filename,  # Optional field
+                        language="python",  # Optional field, specifying the language
+                    )
+                    try:
+                        # Send the review request to GROQ API
+                        print(
+                            f"Sending code review request for {file.filename} to GROQ API"
+                        )
+                        review_feedback = self.groq_client.send_code_review_request(
+                            model_id=self.config.model,
+                            code_review_request=code_review_request,
+                        )
+                        feedback.append(
+                            {
+                                "file": file.filename,
+                                "issues": review_feedback.issues,
+                                "suggestions": review_feedback.suggestions,
+                                "overall_quality": review_feedback.overall_quality,
+                            }
+                        )
+                        print(f"Successfully reviewed {file.filename}")
+                    except Exception as e:
+                        print(
+                            f"Error reviewing {file.filename}: {type(e).__name__}: {e}"
+                        )
+                        feedback.append({"file": file.filename, "error": str(e)})
+                else:
+                    print(f"Skipping non-Python file: {file.filename}")
+
+            return feedback
+        except Exception as e:
+            print(f"Error in perform_code_review: {type(e).__name__}: {e}")
+            return [
+                {"file": "general", "error": f"Failed to perform code review: {str(e)}"}
+            ]
 
     def post_feedback_to_github(self, feedback):
         """
