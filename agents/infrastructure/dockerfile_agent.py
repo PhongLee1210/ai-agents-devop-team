@@ -4,6 +4,7 @@ from models.groq_models import DockerConfig
 from utils.groq_client import GROQClient
 import os
 from dotenv import load_dotenv
+from typing import Dict, Any
 
 # Load environment variables from .env file
 load_dotenv()
@@ -83,19 +84,65 @@ class DockerfileAgent(Agent):
             # Fallback to default configuration if API request fails
             self.config = DockerfileConfig()
 
-    def generate_dockerfile(self) -> str:
+    def generate_dockerfile(self, tech_stack: Dict[str, Any] = None) -> str:
         """
-        Generate Dockerfile content for a React + Vite + TypeScript + Tailwind CSS application.
+        Generate Dockerfile content based on the detected frontend tech stack.
 
         This method creates a multi-stage build Dockerfile that:
-        1. Builds the React app with Vite
+        1. Builds the frontend app with the appropriate build tool
         2. Creates a production-ready image
         3. Configures appropriate settings for performance
+
+        Args:
+            tech_stack (Dict[str, Any], optional): Detected tech stack information.
+                If None, defaults to React + Vite + TypeScript.
 
         Returns:
             str: Complete Dockerfile content
         """
-        dockerfile = f"""# Stage 1: Build the React + Vite + TypeScript + Tailwind CSS application
+        # Default to React + Vite + TypeScript if no tech stack provided
+        if tech_stack is None:
+            tech_stack = {
+                "framework": "React",
+                "build_tool": "Vite",
+                "css_framework": "Tailwind CSS",
+                "typescript": True,
+            }
+
+        framework = tech_stack.get("framework", "React")
+        build_tool = tech_stack.get("build_tool", "Vite")
+        css_framework = tech_stack.get("css_framework", "Tailwind CSS")
+        uses_typescript = tech_stack.get("typescript", True)
+
+        # Generate appropriate build command based on the build tool
+        build_command = self.config.build_command
+
+        # Get the correct build output directory based on the build tool
+        build_output_dir = "dist"
+        if build_tool.lower() == "next.js":
+            build_output_dir = ".next"
+        elif build_tool.lower() == "angular":
+            build_output_dir = "dist/frontend"
+        elif build_tool.lower() == "webpack":
+            build_output_dir = "dist"
+        elif build_tool.lower() == "astro":
+            build_output_dir = "dist"
+
+        # Get the correct serve command/tool based on the framework and build tool
+        serve_tool = "serve"
+        serve_command = f"serve -s {build_output_dir} -l {self.config.expose_port}"
+
+        if build_tool.lower() == "next.js":
+            serve_tool = "next"
+            serve_command = (
+                "next start -p ${PORT:-" + str(self.config.expose_port) + "}"
+            )
+        elif build_tool.lower() == "angular":
+            serve_tool = "angular-http-server"
+            serve_command = f"angular-http-server --path {build_output_dir} -p {self.config.expose_port}"
+
+        # Create the Dockerfile with appropriate comments
+        dockerfile = f"""# Stage 1: Build the {framework} application with {build_tool}
 FROM {self.config.base_image} as build
 
 # Set working directory
@@ -110,19 +157,19 @@ RUN npm ci
 # Copy all frontend files
 COPY {self.config.copy_source}/ ./
 
-# Build the app (TypeScript compilation + Vite build)
-RUN {self.config.build_command}
+# Build the app
+RUN {build_command}
 
 # Stage 2: Setup production environment
 FROM {self.config.base_image}
 
 WORKDIR {self.config.work_dir}
 
-# Install serve for a more robust production server
-RUN npm install -g serve
+# Install serve for a production server
+RUN npm install -g {serve_tool}
 
 # Copy build files from the previous stage
-COPY --from=build {self.config.work_dir}/dist ./dist
+COPY --from=build {self.config.work_dir}/{build_output_dir} ./{build_output_dir}
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -131,7 +178,7 @@ ENV NODE_ENV=production
 EXPOSE {self.config.expose_port}
 
 # Set the command to serve the app
-CMD ["serve", "-s", "dist", "-l", "{self.config.expose_port}"]
+CMD {serve_command}
 """
         return dockerfile
 
