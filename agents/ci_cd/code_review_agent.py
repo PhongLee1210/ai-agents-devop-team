@@ -51,7 +51,7 @@ class CodeReviewAgent(Agent):
 
         # Always use known working model
         print("Using known working model ID for testing")
-        config.model = "llama2-70b-4096"
+        config.model = "llama3-8b-8192"
 
         # Initialize with a try/except to handle potential initialization issues with the parent class
         try:

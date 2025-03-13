@@ -57,7 +57,7 @@ class ChatAgent(Agent):
 
         # Always use known working model
         print("Using known working model ID for testing")
-        config.chat_model_id = "llama2-70b-4096"
+        config.chat_model_id = "llama3-8b-8192"
 
         # Set model attribute for pydantic_ai.Agent compatibility
         if config.model is None:

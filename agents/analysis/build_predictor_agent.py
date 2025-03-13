@@ -45,7 +45,7 @@ class BuildPredictorAgent(Agent):
 
         # Always use known working model
         print("Using known working model ID for testing")
-        config.model = "llama2-70b-4096"
+        config.model = "llama3-8b-8192"
 
         super().__init__()
         self.config = config
