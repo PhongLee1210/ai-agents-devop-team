@@ -16,6 +16,11 @@ from models.groq_models import (
 class GROQClient:
     def __init__(self, api_endpoint: str, api_key: str):
         self.api_endpoint = api_endpoint
+        # DEBUGGING: Print and verify the API endpoint
+        print(f"GROQClient initialized with endpoint: {api_endpoint}")
+        # Remove any trailing slashes to ensure consistent URL formation
+        if self.api_endpoint.endswith("/"):
+            self.api_endpoint = self.api_endpoint.rstrip("/")
         self.api_key = api_key
 
     def send_inference_request(
@@ -26,6 +31,16 @@ class GROQClient:
             "Content-Type": "application/json",
         }
         payload = {"model": model_id, "messages": input_data["messages"]}
+
+        # Ensure correct API endpoint
+        if not self.api_endpoint.endswith("/chat/completions"):
+            if not self.api_endpoint.endswith("/"):
+                self.api_endpoint += "/"
+            if "openai/v1" not in self.api_endpoint:
+                self.api_endpoint += "openai/v1/chat/completions"
+            else:
+                self.api_endpoint += "chat/completions"
+            print(f"Fixed API endpoint: {self.api_endpoint}")
 
         # TESTING: Log the request details
         print(f"Sending request to {self.api_endpoint}")
@@ -92,6 +107,16 @@ class GROQClient:
                 },
             ],
         }
+
+        # Ensure correct API endpoint
+        if not self.api_endpoint.endswith("/chat/completions"):
+            if not self.api_endpoint.endswith("/"):
+                self.api_endpoint += "/"
+            if "openai/v1" not in self.api_endpoint:
+                self.api_endpoint += "openai/v1/chat/completions"
+            else:
+                self.api_endpoint += "chat/completions"
+            print(f"Fixed API endpoint: {self.api_endpoint}")
 
         # TESTING: Log the request details
         print(f"Sending code review request to {self.api_endpoint}")
@@ -165,6 +190,16 @@ class GROQClient:
                 {"role": "user", "content": chat_create_request.user_message},
             ],
         }
+
+        # Ensure correct API endpoint
+        if not self.api_endpoint.endswith("/chat/completions"):
+            if not self.api_endpoint.endswith("/"):
+                self.api_endpoint += "/"
+            if "openai/v1" not in self.api_endpoint:
+                self.api_endpoint += "openai/v1/chat/completions"
+            else:
+                self.api_endpoint += "chat/completions"
+            print(f"Fixed API endpoint: {self.api_endpoint}")
 
         # TESTING: Log the request details
         print(f"Sending chat request to {self.api_endpoint}")

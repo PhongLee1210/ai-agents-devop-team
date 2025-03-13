@@ -128,7 +128,9 @@ class CodeReviewAgent(Agent):
         print(f"CodeReviewAgent - Using model ID: {self.config.model}")
 
         try:
-            files = self.fetch_pull_request_files()
+            # Get files as PaginatedList and convert to a list we can count
+            paginated_files = self.fetch_pull_request_files()
+            files = list(paginated_files)
             print(f"Found {len(files)} files in the pull request")
 
             feedback = []
