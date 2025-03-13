@@ -1,6 +1,13 @@
 # change the name of this file to .env
 
-GROQ_API_KEY='gsk_add_your_key_here'
-GROQ_CHAT_ENDPOINT='https://api.groq.com/openai/v1/chat/completions'
-GROQ_API_ENDPOINT='https://api.groq.com/openai/v1/chat/completions'
-GITHUB_TOKEN='ghp_add_your_token_here'
+# DevGenius Environment Variables
+
+# GROQ API Configuration
+GROQ_API_ENDPOINT=https://api.groq.com/v1
+GROQ_API_KEY=your_groq_api_key
+
+# GitHub Configuration
+GITHUB_TOKEN=your_github_personal_access_token
+
+# Docker Configuration
+DOCKER_REGISTRY=default

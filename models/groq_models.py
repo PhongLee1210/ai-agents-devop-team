@@ -1,9 +1,11 @@
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 
+
 class GitHubAction(BaseModel):
     name: str
     steps: List[str]
+
 
 class DockerConfig(BaseModel):
     base_image: str
@@ -11,32 +13,48 @@ class DockerConfig(BaseModel):
     copy_source: str
     work_dir: str
 
+
 class InferenceRequest(BaseModel):
     model_id: str
     input_data: Dict[str, Any]
+
 
 class InferenceResponse(BaseModel):
     prediction: Dict[str, Any]
     confidence: float
     status: str
 
+
 # New Models for Code Review
 class CodeReviewRequest(BaseModel):
-    file_name: str
-    file_content: str
-    diff: str  # The diff of the changes
+    code: str
+    file_name: Optional[str] = None
+    language: Optional[str] = None
+
+
+class CodeIssue(BaseModel):
+    description: str
+    severity: str  # "error", "warning", "info"
+
+
+class CodeSuggestion(BaseModel):
+    description: str
+    priority: str  # "high", "medium", "low"
+
 
 class CodeReviewFeedback(BaseModel):
-    issues: List[Dict[str, Any]]
-    suggestions: List[str]
-    overall_quality: str
+    issues: List[CodeIssue]
+    suggestions: List[CodeSuggestion]
+    overall_quality: str  # "good", "needs_improvement", "needs_review"
+
 
 # New Models for Chat-Create API
 class ChatCreateRequest(BaseModel):
+    model_id: str
     user_message: str
-    context: Optional[Dict[str, Any]] = None  # Additional context if needed
+    context: str = "You are a helpful AI assistant."
+
 
 class ChatCreateResponse(BaseModel):
-    bot_response: str
-    confidence: float
-    status: str
+    response: str
+    metadata: Dict[str, Any]
