@@ -26,9 +26,23 @@ class GROQClient:
             "Content-Type": "application/json",
         }
         payload = {"model": model_id, "messages": input_data["messages"]}
-        response = requests.post(self.api_endpoint, json=payload, headers=headers)
-        response.raise_for_status()
+
+        # TESTING: Log the request details
+        print(f"Sending request to {self.api_endpoint}")
+        print(f"Using model: {model_id}")
+
         try:
+            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+
+            # TESTING: Log the response status
+            print(f"Response status: {response.status_code}")
+
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as he:
+                print(f"HTTP Error: {he}")
+                print(f"Response text: {response.text}")
+                raise
             # Parse the GROQ API response
             groq_response = response.json()
 
@@ -78,9 +92,23 @@ class GROQClient:
                 },
             ],
         }
-        response = requests.post(self.api_endpoint, json=payload, headers=headers)
-        response.raise_for_status()
+
+        # TESTING: Log the request details
+        print(f"Sending code review request to {self.api_endpoint}")
+        print(f"Using model: {model_id}")
+
         try:
+            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+
+            # TESTING: Log the response status
+            print(f"Response status: {response.status_code}")
+
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as he:
+                print(f"HTTP Error: {he}")
+                print(f"Response text: {response.text}")
+                raise
             # Parse the GROQ API response
             groq_response = response.json()
 
@@ -137,9 +165,24 @@ class GROQClient:
                 {"role": "user", "content": chat_create_request.user_message},
             ],
         }
-        response = requests.post(self.api_endpoint, json=payload, headers=headers)
-        response.raise_for_status()
+
+        # TESTING: Log the request details
+        print(f"Sending chat request to {self.api_endpoint}")
+        print(f"Using model: {chat_create_request.model_id}")
+        print(f"Payload: {payload}")
+
         try:
+            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+
+            # TESTING: Log the response status
+            print(f"Response status: {response.status_code}")
+
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as he:
+                print(f"HTTP Error: {he}")
+                print(f"Response text: {response.text}")
+                raise
             # Parse the GROQ API response
             groq_response = response.json()
 
