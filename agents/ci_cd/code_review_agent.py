@@ -204,19 +204,33 @@ class CodeReviewAgent(Agent):
                 comment = f"⚠️ **Code Review Error**: {file_feedback['error']}"
             else:
                 # Format successful review feedback
-                issues = "\n".join(
-                    [f"- {issue['description']}" for issue in file_feedback["issues"]]
-                )
-                suggestions = "\n".join(
-                    [f"- {suggestion}" for suggestion in file_feedback["suggestions"]]
-                )
-                overall = file_feedback["overall_quality"]
+                # Handle CodeIssue objects properly - they have attributes, not dictionary keys
+                issues_text = ""
+                if "issues" in file_feedback and file_feedback["issues"]:
+                    issues = file_feedback["issues"]
+                    issues_text = "\n".join(
+                        [f"- {issue.description}" for issue in issues]
+                    )
+                else:
+                    issues_text = "- No issues found"
+
+                # Handle suggestions properly
+                suggestions_text = ""
+                if "suggestions" in file_feedback and file_feedback["suggestions"]:
+                    suggestions = file_feedback["suggestions"]
+                    suggestions_text = "\n".join(
+                        [f"- {suggestion.description}" for suggestion in suggestions]
+                    )
+                else:
+                    suggestions_text = "- No suggestions provided"
+
+                overall = file_feedback.get("overall_quality", "unknown")
 
                 comment = (
                     f"### 📝 Code Review for `{file_feedback['file']}`\n\n"
                     f"**Overall Quality**: {overall}\n\n"
-                    f"**Issues Found**:\n{issues}\n\n"
-                    f"**Suggestions**:\n{suggestions}"
+                    f"**Issues Found**:\n{issues_text}\n\n"
+                    f"**Suggestions**:\n{suggestions_text}"
                 )
             # Post the comment on the pull request
             pull_request.create_issue_comment(comment)

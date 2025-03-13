@@ -161,16 +161,16 @@ jobs:
         if self.config.run_linting:
             if uses_typescript:
                 pipeline += """
-                    - name: Lint TypeScript code
-                      working-directory: ./frontend
-                      run: npm run lint
-                """
+        - name: Lint TypeScript code
+          working-directory: ./frontend
+          run: npm run lint
+        """
             else:
                 pipeline += """
-                    - name: Lint JavaScript code
-                      working-directory: ./frontend
-                      run: npm run lint
-                """
+        - name: Lint JavaScript code
+          working-directory: ./frontend
+          run: npm run lint
+        """
 
         # Add testing step customized for the framework
         if self.config.run_tests:

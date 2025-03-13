@@ -33,21 +33,23 @@ class GROQClient:
         payload = {"model": model_id, "messages": input_data["messages"]}
 
         # Ensure correct API endpoint
-        if not self.api_endpoint.endswith("/chat/completions"):
-            if not self.api_endpoint.endswith("/"):
-                self.api_endpoint += "/"
-            if "openai/v1" not in self.api_endpoint:
-                self.api_endpoint += "openai/v1/chat/completions"
-            else:
-                self.api_endpoint += "chat/completions"
-            print(f"Fixed API endpoint: {self.api_endpoint}")
+        endpoint = self.api_endpoint
+        if "openai/v1/chat/completions" not in endpoint:
+            # Start with a clean base URL without trailing slash
+            if endpoint.endswith("/"):
+                endpoint = endpoint.rstrip("/")
+
+            # Add the correct path
+            endpoint = f"{endpoint}/openai/v1/chat/completions"
+
+        print(f"Using endpoint URL: {endpoint}")
 
         # TESTING: Log the request details
-        print(f"Sending request to {self.api_endpoint}")
+        print(f"Sending request to {endpoint}")
         print(f"Using model: {model_id}")
 
         try:
-            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+            response = requests.post(endpoint, json=payload, headers=headers)
 
             # TESTING: Log the response status
             print(f"Response status: {response.status_code}")
@@ -109,21 +111,23 @@ class GROQClient:
         }
 
         # Ensure correct API endpoint
-        if not self.api_endpoint.endswith("/chat/completions"):
-            if not self.api_endpoint.endswith("/"):
-                self.api_endpoint += "/"
-            if "openai/v1" not in self.api_endpoint:
-                self.api_endpoint += "openai/v1/chat/completions"
-            else:
-                self.api_endpoint += "chat/completions"
-            print(f"Fixed API endpoint: {self.api_endpoint}")
+        endpoint = self.api_endpoint
+        if "openai/v1/chat/completions" not in endpoint:
+            # Start with a clean base URL without trailing slash
+            if endpoint.endswith("/"):
+                endpoint = endpoint.rstrip("/")
+
+            # Add the correct path
+            endpoint = f"{endpoint}/openai/v1/chat/completions"
+
+        print(f"Using endpoint URL: {endpoint}")
 
         # TESTING: Log the request details
-        print(f"Sending code review request to {self.api_endpoint}")
+        print(f"Sending code review request to {endpoint}")
         print(f"Using model: {model_id}")
 
         try:
-            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+            response = requests.post(endpoint, json=payload, headers=headers)
 
             # TESTING: Log the response status
             print(f"Response status: {response.status_code}")
@@ -192,22 +196,24 @@ class GROQClient:
         }
 
         # Ensure correct API endpoint
-        if not self.api_endpoint.endswith("/chat/completions"):
-            if not self.api_endpoint.endswith("/"):
-                self.api_endpoint += "/"
-            if "openai/v1" not in self.api_endpoint:
-                self.api_endpoint += "openai/v1/chat/completions"
-            else:
-                self.api_endpoint += "chat/completions"
-            print(f"Fixed API endpoint: {self.api_endpoint}")
+        endpoint = self.api_endpoint
+        if "openai/v1/chat/completions" not in endpoint:
+            # Start with a clean base URL without trailing slash
+            if endpoint.endswith("/"):
+                endpoint = endpoint.rstrip("/")
+
+            # Add the correct path
+            endpoint = f"{endpoint}/openai/v1/chat/completions"
+
+        print(f"Using endpoint URL: {endpoint}")
 
         # TESTING: Log the request details
-        print(f"Sending chat request to {self.api_endpoint}")
+        print(f"Sending chat request to {endpoint}")
         print(f"Using model: {chat_create_request.model_id}")
         print(f"Payload: {payload}")
 
         try:
-            response = requests.post(self.api_endpoint, json=payload, headers=headers)
+            response = requests.post(endpoint, json=payload, headers=headers)
 
             # TESTING: Log the response status
             print(f"Response status: {response.status_code}")
