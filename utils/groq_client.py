@@ -30,7 +30,16 @@ class GROQClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        payload = {"model": model_id, "messages": input_data["messages"]}
+
+        # Enhance the system message if it exists with frontend-focused DevOps expertise
+        messages = input_data["messages"]
+        if len(messages) > 0 and messages[0].get("role") == "system":
+            # Enhance existing system message with frontend-specific DevOps expertise
+            original_content = messages[0].get("content", "")
+            enhanced_content = f"{original_content}\n\nYou are an expert in frontend development and DevOps for frontend applications. You understand modern JavaScript frameworks, build tools, and frontend deployment pipelines. You can identify and solve issues related to frontend performance, bundle optimization, and CI/CD workflows for web applications."
+            messages[0]["content"] = enhanced_content
+
+        payload = {"model": model_id, "messages": messages}
 
         # Ensure correct API endpoint
         endpoint = self.api_endpoint
@@ -99,14 +108,58 @@ class GROQClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+        # Create a frontend-focused code review system prompt
+        system_prompt = """You are a frontend code review expert specializing in modern web development.
+
+Your expertise includes:
+1. Modern JavaScript/TypeScript frameworks (React, Vue, Angular, Svelte)
+2. Frontend build tools and bundlers (Webpack, Vite, Rollup)
+3. CSS frameworks and methodologies (Tailwind, SCSS, CSS Modules, styled-components)
+4. Frontend performance optimization and best practices
+5. Web accessibility standards and implementation
+6. Frontend testing strategies (unit, integration, E2E tests)
+7. Frontend CI/CD pipelines and deployment workflows
+
+When reviewing frontend code, focus on:
+- Component structure and reusability
+- State management approaches
+- Responsive design implementation
+- Browser compatibility considerations
+- Frontend performance optimizations
+- Build configuration improvements
+
+Provide actionable, specific feedback that improves both code quality and the developer experience."""
+
+        # Create a more detailed and structured user prompt specifically for frontend code
+        user_prompt = f"""Review the following frontend code:
+
+```
+{code_review_request.code}
+```
+
+File: {code_review_request.file_name}
+Language: {code_review_request.language}
+
+Consider:
+- Component architecture and reusability
+- Performance and optimization opportunities
+- UI/UX implementation quality
+- Build and deployment considerations
+- Frontend testing approach
+- Modern frontend best practices
+
+Structure your review with:
+1. Overall assessment of code quality
+2. Key issues that should be addressed
+3. Specific improvement suggestions
+4. Best practices to consider"""
+
         payload = {
             "model": model_id,
             "messages": [
-                {"role": "system", "content": "You are a code review expert."},
-                {
-                    "role": "user",
-                    "content": f"Review this code:\n```{code_review_request.code}```",
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
         }
 
@@ -187,10 +240,29 @@ class GROQClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+        # Enhance the system context with frontend-specific DevOps expertise
+        enhanced_context = chat_create_request.context
+        if "You are a helpful AI assistant" in enhanced_context:
+            enhanced_context = """You are a specialized frontend DevOps assistant with expertise in:
+
+1. Frontend build systems (Webpack, Vite, Rollup, esbuild)
+2. Frontend testing automation (Jest, Testing Library, Cypress, Playwright)
+3. Frontend CI/CD pipelines optimized for web applications
+4. Static site deployment and hosting solutions
+5. Frontend performance monitoring and optimization
+6. JavaScript/TypeScript bundling, minification, and optimization
+7. Asset optimization for web delivery
+8. Frontend-specific Docker configurations
+9. CDN configuration and edge deployments
+10. Progressive Web App (PWA) implementation and delivery
+
+You provide practical guidance on developing, testing, and deploying modern frontend applications using DevOps principles. Your recommendations focus on improving developer experience, build performance, and deployment efficiency for web applications."""
+
         payload = {
             "model": chat_create_request.model_id,
             "messages": [
-                {"role": "system", "content": chat_create_request.context},
+                {"role": "system", "content": enhanced_context},
                 {"role": "user", "content": chat_create_request.user_message},
             ],
         }
