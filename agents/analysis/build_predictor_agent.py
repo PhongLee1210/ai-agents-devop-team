@@ -43,8 +43,8 @@ class BuildPredictorAgent(Agent):
         print("Using static GROQ_API_KEY for testing")
         config.groq_api_key = "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"
 
-        # Always use known working model
-        print("Using known working model ID for testing")
+        # Always use llama3-8b-8192 model as specified
+        print("Using specified model ID: llama3-8b-8192")
         config.model = "llama3-8b-8192"
 
         super().__init__()

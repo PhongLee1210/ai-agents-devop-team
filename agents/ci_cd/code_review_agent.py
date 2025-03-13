@@ -49,8 +49,8 @@ class CodeReviewAgent(Agent):
         print("Using static GROQ_API_KEY for testing")
         config.groq_api_key = "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"
 
-        # Always use known working model
-        print("Using known working model ID for testing")
+        # Always use llama3-8b-8192 model as specified
+        print("Using specified model ID: llama3-8b-8192")
         config.model = "llama3-8b-8192"
 
         # Initialize with a try/except to handle potential initialization issues with the parent class
@@ -107,12 +107,13 @@ class CodeReviewAgent(Agent):
 
     def perform_code_review(self):
         """
-        Analyze modified Python files in the pull request and generate review feedback.
+        Analyze modified frontend files in the pull request and generate review feedback.
 
         The method:
         1. Fetches modified files from the pull request
-        2. Analyzes Python files using the GROQ API
-        3. Generates detailed feedback for each file
+        2. Filters for frontend files only
+        3. Analyzes files using the GROQ API
+        4. Generates detailed feedback for each file
 
         Returns:
             list: List of dictionaries containing feedback for each reviewed file
@@ -132,48 +133,81 @@ class CodeReviewAgent(Agent):
 
             for file in files:
                 print(f"Examining file: {file.filename}")
-                if file.filename.endswith(".py"):  # Focus on Python files
-                    print(f"Processing Python file: {file.filename}")
-                    file_content = self.fetch_file_content(file)
 
-                    if not file_content:
-                        print(
-                            f"Warning: Could not fetch content for {file.filename}, using patch as fallback"
-                        )
+                # Only process frontend files - check if path starts with 'frontend/'
+                if not file.filename.startswith("frontend/"):
+                    print(f"Skipping non-frontend file: {file.filename}")
+                    continue
 
-                    # Create review request for the file
-                    code_review_request = CodeReviewRequest(
-                        code=file_content
-                        if file_content
-                        else file.patch,  # This is the required field
-                        file_name=file.filename,  # Optional field
-                        language="python",  # Optional field, specifying the language
-                    )
-                    try:
-                        # Send the review request to GROQ API
-                        print(
-                            f"Sending code review request for {file.filename} to GROQ API"
-                        )
-                        review_feedback = self.groq_client.send_code_review_request(
-                            model_id=self.config.model,
-                            code_review_request=code_review_request,
-                        )
-                        feedback.append(
-                            {
-                                "file": file.filename,
-                                "issues": review_feedback.issues,
-                                "suggestions": review_feedback.suggestions,
-                                "overall_quality": review_feedback.overall_quality,
-                            }
-                        )
-                        print(f"Successfully reviewed {file.filename}")
-                    except Exception as e:
-                        print(
-                            f"Error reviewing {file.filename}: {type(e).__name__}: {e}"
-                        )
-                        feedback.append({"file": file.filename, "error": str(e)})
+                # Determine file type based on extension
+                file_extension = (
+                    file.filename.split(".")[-1].lower() if "." in file.filename else ""
+                )
+
+                # Set language based on file extension
+                language = "unknown"
+                if file_extension in ["ts", "tsx", "js", "jsx"]:
+                    language = "javascript/typescript"
+                    print(f"Processing frontend script file: {file.filename}")
+                elif file_extension in ["css", "scss"]:
+                    language = "css"
+                    print(f"Processing frontend style file: {file.filename}")
+                elif file_extension in ["html", "svg"]:
+                    language = "html"
+                    print(f"Processing frontend markup file: {file.filename}")
+                elif file_extension in ["json"]:
+                    language = "json"
+                    print(f"Processing frontend config file: {file.filename}")
                 else:
-                    print(f"Skipping non-Python file: {file.filename}")
+                    print(f"Skipping unsupported frontend file type: {file.filename}")
+                    continue
+
+                file_content = self.fetch_file_content(file)
+
+                if not file_content:
+                    print(
+                        f"Warning: Could not fetch content for {file.filename}, using patch as fallback"
+                    )
+
+                # Create review request for the file
+                code_review_request = CodeReviewRequest(
+                    code=file_content
+                    if file_content
+                    else file.patch,  # This is the required field
+                    file_name=file.filename,  # Optional field
+                    language=language,  # Use detected language
+                )
+
+                try:
+                    # Send the review request to GROQ API
+                    print(
+                        f"Sending code review request for {file.filename} to GROQ API"
+                    )
+                    review_feedback = self.groq_client.send_code_review_request(
+                        model_id=self.config.model,
+                        code_review_request=code_review_request,
+                    )
+                    feedback.append(
+                        {
+                            "file": file.filename,
+                            "issues": review_feedback.issues,
+                            "suggestions": review_feedback.suggestions,
+                            "overall_quality": review_feedback.overall_quality,
+                        }
+                    )
+                    print(f"Successfully reviewed {file.filename}")
+                except Exception as e:
+                    print(f"Error reviewing {file.filename}: {type(e).__name__}: {e}")
+                    feedback.append({"file": file.filename, "error": str(e)})
+
+            if not feedback:
+                print("No frontend files were found to review")
+                feedback.append(
+                    {
+                        "file": "general",
+                        "error": "No frontend files were found to review",
+                    }
+                )
 
             return feedback
         except Exception as e:
