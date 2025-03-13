@@ -94,7 +94,18 @@ class ChatAgent(Agent):
         Raises:
             Exception: If the chat interaction fails
         """
-        chat_request = ChatCreateRequest(user_message=user_message, context=context)
+        # Create request with required model_id and properly formatted context string
+        context_str = "You are a helpful AI assistant."
+        if context:
+            context_str = (
+                f"You are a helpful AI assistant. Additional context: {str(context)}"
+            )
+
+        chat_request = ChatCreateRequest(
+            model_id=self.config.chat_model_id,
+            user_message=user_message,
+            context=context_str,
+        )
         try:
             response = self.groq_client.send_chat_create_request(chat_request)
             return response
@@ -131,13 +142,14 @@ class ChatAgent(Agent):
         user_message = "Please review the recent changes in this pull request for code quality and potential issues."
         response = self.perform_chat_interaction(user_message)
 
-        if response.status == "success":
-            bot_response = response.bot_response
+        # Check if we have a valid response with content
+        if hasattr(response, "response") and response.response:
+            bot_response = response.response
             self.post_feedback_to_github(bot_response)
             return {
                 "bot_response": bot_response,
-                "confidence": response.confidence,
-                "status": response.status,
+                "metadata": response.metadata if hasattr(response, "metadata") else {},
+                "status": "success",
             }
         else:
             return {

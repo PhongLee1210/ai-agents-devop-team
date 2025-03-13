@@ -114,12 +114,11 @@ class CodeReviewAgent(Agent):
                 file_content = self.fetch_file_content(file)
                 # Create review request for the file
                 code_review_request = CodeReviewRequest(
-                    file_name=file.filename,
-                    file_content=file.raw_url,  # URL to the raw content
-                    diff=file.patch,
                     code=file_content
                     if file_content
-                    else file.patch,  # Use actual content if available, otherwise use patch
+                    else file.patch,  # This is the required field
+                    file_name=file.filename,  # Optional field
+                    language="python",  # Optional field, specifying the language
                 )
                 try:
                     # Send the review request to GROQ API
