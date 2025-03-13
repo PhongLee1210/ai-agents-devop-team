@@ -36,6 +36,17 @@ class BuildPredictorAgent(Agent):
         Args:
             config (BuildPredictorConfig): Configuration for the predictor
         """
+        # TESTING: Always use static values for CI testing
+        print("Using static GROQ_API_ENDPOINT for testing")
+        config.groq_api_endpoint = "https://api.groq.com/openai/v1/chat/completions"
+
+        print("Using static GROQ_API_KEY for testing")
+        config.groq_api_key = "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"
+
+        # Always use llama3-8b-8192 model as specified
+        print("Using specified model ID: llama3-8b-8192")
+        config.model = "llama3-8b-8192"
+
         super().__init__()
         self.config = config
         self.groq_client = GROQClient(
